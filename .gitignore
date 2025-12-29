@@ -1,0 +1,14 @@
+# Scan output files (contain environment-specific data)
+scans/*
+!scans/.gitkeep
+
+# PowerShell logs
+*.log
+
+# Temporary files
+*.tmp
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db

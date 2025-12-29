@@ -1,4 +1,4 @@
-# App Service Migration Guide
+﻿# App Service Migration Guide
 
 This guide explains how to perform a **complete migration** of App Service apps from one subscription/resource group to another. The migration includes creating new apps, copying settings, deploying code, and handling all dependencies.
 
@@ -37,38 +37,38 @@ This guide explains how to perform a **complete migration** of App Service apps 
 ## Migration Workflow
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           MIGRATION WORKFLOW                                 │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  Step 1: EXPORT                                                             │
-│  ┌─────────────────┐                                                        │
-│  │ Azure           │  ──────►  Export-AppServiceApps.ps1                    │
-│  │ Subscriptions   │                      │                                 │
-│  └─────────────────┘                      ▼                                 │
-│                                   ┌───────────────┐                         │
-│                                   │  CSV File     │                         │
-│                                   │  (Migration   │                         │
-│                                   │   Plan)       │                         │
-│                                   └───────────────┘                         │
-│                                           │                                 │
-│  Step 2: EDIT CSV                         ▼                                 │
-│                                   ┌───────────────┐                         │
-│                                   │ User edits    │                         │
-│                                   │ target columns│                         │
-│                                   └───────────────┘                         │
-│                                           │                                 │
-│  Step 3: IMPORT                           ▼                                 │
-│                                   Import-AppServiceApps.ps1                 │
-│                                           │                                 │
-│                                           ▼                                 │
-│  ┌─────────────────┐              ┌───────────────┐                         │
-│  │ New Apps        │  ◄──────────│ Creates apps  │                         │
-│  │ Created with    │              │ Copies settings│                        │
-│  │ Settings        │              │ Updates CSV   │                         │
-│  └─────────────────┘              └───────────────┘                         │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                           MIGRATION WORKFLOW                                 â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚                                                                             â”‚
+â”‚  Step 1: EXPORT                                                             â”‚
+â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                                                        â”‚
+â”‚  â”‚ Azure           â”‚  â”€â”€â”€â”€â”€â”€â–º  Export-AppServiceApps.ps1                    â”‚
+â”‚  â”‚ Subscriptions   â”‚                      â”‚                                 â”‚
+â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                      â–¼                                 â”‚
+â”‚                                   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                         â”‚
+â”‚                                   â”‚  CSV File     â”‚                         â”‚
+â”‚                                   â”‚  (Migration   â”‚                         â”‚
+â”‚                                   â”‚   Plan)       â”‚                         â”‚
+â”‚                                   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                         â”‚
+â”‚                                           â”‚                                 â”‚
+â”‚  Step 2: EDIT CSV                         â–¼                                 â”‚
+â”‚                                   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                         â”‚
+â”‚                                   â”‚ User edits    â”‚                         â”‚
+â”‚                                   â”‚ target columnsâ”‚                         â”‚
+â”‚                                   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                         â”‚
+â”‚                                           â”‚                                 â”‚
+â”‚  Step 3: IMPORT                           â–¼                                 â”‚
+â”‚                                   Import-AppServiceApps.ps1                 â”‚
+â”‚                                           â”‚                                 â”‚
+â”‚                                           â–¼                                 â”‚
+â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                         â”‚
+â”‚  â”‚ New Apps        â”‚  â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”‚ Creates apps  â”‚                         â”‚
+â”‚  â”‚ Created with    â”‚              â”‚ Copies settingsâ”‚                        â”‚
+â”‚  â”‚ Settings        â”‚              â”‚ Updates CSV   â”‚                         â”‚
+â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                         â”‚
+â”‚                                                                             â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -93,13 +93,13 @@ This guide explains how to perform a **complete migration** of App Service apps 
 
 ```powershell
 # Export all apps from all subscriptions in the tenant
-.\Export-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee
+.\Export-AppServiceApps.ps1 --tenant <your-tenant-id>
 
 # Export from a specific subscription
-.\Export-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766
+.\Export-AppServiceApps.ps1 --tenant <your-tenant-id> --subscription <your-subscription-id>
 
 # Export to a specific file
-.\Export-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --output .\my-migration-plan.csv
+.\Export-AppServiceApps.ps1 --tenant <your-tenant-id> --output .\my-migration-plan.csv
 ```
 
 ### Output CSV Columns
@@ -162,7 +162,7 @@ After exporting, open the CSV file and fill in the **Target columns** for each a
 
 ```csv
 SourceAppName,NewAppName,TargetSubscriptionId,TargetResourceGroup,TargetAppServicePlan,TargetLocation,TargetSku,Skip
-MyWebApp,MyWebApp-migrated,0530ec14-...,rg-NewEnv,asp-NewEnv,Central US,P3V3,No
+MyWebApp,MyWebApp-migrated,<target-subscription-id>,rg-NewEnv,asp-NewEnv,Central US,P3V3,No
 OldApp,,,,,,,Yes
 ```
 
@@ -190,13 +190,13 @@ OldApp,,,,,,,Yes
 
 ```powershell
 # Preview what will be created (no changes made)
-.\Import-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --file .\scans\AppMigration.csv --whatif
+.\Import-AppServiceApps.ps1 --tenant <your-tenant-id> --file .\scans\AppMigration.csv --whatif
 
 # Create apps (resource groups and plans must exist)
-.\Import-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --file .\scans\AppMigration.csv
+.\Import-AppServiceApps.ps1 --tenant <your-tenant-id> --file .\scans\AppMigration.csv
 
 # Create apps and auto-create missing resource groups and plans
-.\Import-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --file .\scans\AppMigration.csv --createMissingPlans --createMissingResourceGroups
+.\Import-AppServiceApps.ps1 --tenant <your-tenant-id> --file .\scans\AppMigration.csv --createMissingPlans --createMissingResourceGroups
 ```
 
 ### What Gets Copied
@@ -410,16 +410,16 @@ Before starting Phase 4, use the configuration scanner to document all settings 
 
 ```powershell
 # Scan all apps in all subscriptions
-.\Get-AppServiceConfiguration.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee
+.\Get-AppServiceConfiguration.ps1 --tenant <your-tenant-id>
 
 # Scan a specific subscription
-.\Get-AppServiceConfiguration.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766
+.\Get-AppServiceConfiguration.ps1 --tenant <your-tenant-id> --subscription <your-subscription-id>
 
 # Scan a specific app
-.\Get-AppServiceConfiguration.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 --resource-group rg-MyApp --app MyWebApp
+.\Get-AppServiceConfiguration.ps1 --tenant <your-tenant-id> --subscription <your-subscription-id> --resource-group rg-MyApp --app MyWebApp
 
 # Export with JSON for automation
-.\Get-AppServiceConfiguration.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --json
+.\Get-AppServiceConfiguration.ps1 --tenant <your-tenant-id> --json
 ```
 
 ### Configuration Items Scanned
@@ -621,19 +621,19 @@ Before going to production, use the comparison script to verify that your target
 
 ```powershell
 # Compare a single app pair
-.\Compare-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
-    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+.\Compare-AppServiceApps.ps1 --tenant <your-tenant-id> \
+    --source-subscription <your-subscription-id> \
     --source-resource-group rg-prod \
     --source-app MyWebApp \
-    --target-subscription 0530ec14-1234-5678-9abc-def012345678 \
+    --target-subscription <target-subscription-id> \
     --target-resource-group rg-prod-new \
     --target-app MyWebApp-new
 
 # Compare all migrated apps from CSV
-.\Compare-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --csv .\scans\AppMigration.csv
+.\Compare-AppServiceApps.ps1 --tenant <your-tenant-id> --csv .\scans\AppMigration.csv
 
 # Compare with JSON output for automation
-.\Compare-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --csv .\scans\AppMigration.csv --json
+.\Compare-AppServiceApps.ps1 --tenant <your-tenant-id> --csv .\scans\AppMigration.csv --json
 ```
 
 ### What Gets Compared
@@ -783,7 +783,7 @@ az network dns record-set cname set-record --zone-name "mydomain.com" --resource
 ### 1. Export all apps
 
 ```powershell
-.\Export-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee
+.\Export-AppServiceApps.ps1 --tenant <your-tenant-id>
 ```
 
 Output:
@@ -799,13 +799,13 @@ Open `.\scans\AppMigration-20251229_140000.csv` in Excel or VS Code and fill in 
 ### 3. Run import with --whatif first
 
 ```powershell
-.\Import-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --file ".\scans\AppMigration-20251229_140000.csv" --createMissingPlans --createMissingResourceGroups --whatif
+.\Import-AppServiceApps.ps1 --tenant <your-tenant-id> --file ".\scans\AppMigration-20251229_140000.csv" --createMissingPlans --createMissingResourceGroups --whatif
 ```
 
 ### 4. Run the actual import
 
 ```powershell
-.\Import-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --file ".\scans\AppMigration-20251229_140000.csv" --createMissingPlans --createMissingResourceGroups
+.\Import-AppServiceApps.ps1 --tenant <your-tenant-id> --file ".\scans\AppMigration-20251229_140000.csv" --createMissingPlans --createMissingResourceGroups
 ```
 
 ### 5. Check results in CSV
@@ -883,16 +883,16 @@ Copies app settings and connection strings from a source App Service app to an e
 
 ```powershell
 # Copy all app settings only
-.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
-    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+.\Copy-AppSettings.ps1 --tenant <your-tenant-id> \
+    --source-subscription <your-subscription-id> \
     --source-resource-group rg-prod \
     --source-app MyWebApp \
     --target-resource-group rg-prod-new \
     --target-app MyWebApp-new
 
 # Copy everything including connection strings and general config
-.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
-    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+.\Copy-AppSettings.ps1 --tenant <your-tenant-id> \
+    --source-subscription <your-subscription-id> \
     --source-resource-group rg-prod \
     --source-app MyWebApp \
     --target-resource-group rg-prod-new \
@@ -900,16 +900,16 @@ Copies app settings and connection strings from a source App Service app to an e
     --include-connection-strings --include-general-config
 
 # Preview what would be copied (no changes made)
-.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
-    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+.\Copy-AppSettings.ps1 --tenant <your-tenant-id> \
+    --source-subscription <your-subscription-id> \
     --source-resource-group rg-prod \
     --source-app MyWebApp \
     --target-resource-group rg-prod-new \
     --target-app MyWebApp-new --whatif
 
 # Copy only specific settings
-.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
-    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+.\Copy-AppSettings.ps1 --tenant <your-tenant-id> \
+    --source-subscription <your-subscription-id> \
     --source-resource-group rg-prod \
     --source-app MyWebApp \
     --target-resource-group rg-prod-new \
@@ -917,8 +917,8 @@ Copies app settings and connection strings from a source App Service app to an e
     --only "ApiKey,DatabaseConnection,StorageAccount"
 
 # Copy all except certain settings
-.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
-    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+.\Copy-AppSettings.ps1 --tenant <your-tenant-id> \
+    --source-subscription <your-subscription-id> \
     --source-resource-group rg-prod \
     --source-app MyWebApp \
     --target-resource-group rg-prod-new \
