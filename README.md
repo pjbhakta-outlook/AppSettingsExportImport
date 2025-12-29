@@ -21,6 +21,7 @@ This guide explains how to perform a **complete migration** of App Service apps 
 |--------|---------|
 | `Export-AppServiceApps.ps1` | Scans subscriptions and exports a list of all App Service apps to a CSV file |
 | `Import-AppServiceApps.ps1` | Reads the CSV file, creates new apps, and copies all settings from source apps |
+| `Get-AppServiceConfiguration.ps1` | Exports Phase 4 configuration (domains, SSL, identities, VNet, etc.) for verification |
 | `Copy-AppSettings.ps1` | Helper script to copy settings to existing apps |
 
 ## Prerequisites
@@ -262,6 +263,8 @@ Use this checklist to ensure a complete migration:
 - [ ] Verify deployment succeeded
 
 ### Phase 4: Configure Additional Settings
+- [ ] Run `Get-AppServiceConfiguration.ps1` to document source configuration
+- [ ] Review the configuration report for each app
 - [ ] Configure managed identities
 - [ ] Set up VNet integration (if needed)
 - [ ] Configure private endpoints (if needed)
@@ -272,6 +275,8 @@ Use this checklist to ensure a complete migration:
 - [ ] Create deployment slots (if needed)
 - [ ] Deploy and configure WebJobs
 - [ ] Configure backup schedules
+- [ ] Set up IP restrictions (if needed)
+- [ ] Configure hybrid connections (if needed)
 
 ### Phase 5: Testing
 - [ ] Test each app using the `.azurewebsites.net` URL
@@ -373,6 +378,116 @@ az webapp config container set --name "NewApp" --resource-group "NewRG" \
     --container-registry-url "https://myregistry.azurecr.io" \
     --container-registry-user "username" \
     --container-registry-password "password"
+```
+
+---
+
+## Scan Source Configuration (Pre-Phase 4)
+
+Before starting Phase 4, use the configuration scanner to document all settings that require manual migration.
+
+### Command
+
+```powershell
+.\Get-AppServiceConfiguration.ps1 --tenant <tenantId> [options]
+```
+
+### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `--tenant` | Yes | Azure Tenant ID |
+| `--subscription` | No | Specific subscription ID (scans all if omitted) |
+| `--resource-group` | No | Specific resource group (requires `--subscription`) |
+| `--app` | No | Specific app name (requires `--resource-group`) |
+| `--output` | No | Output file path (default: `.\scans\AppConfig-<timestamp>.txt`) |
+| `--json` | No | Also export as JSON file for programmatic use |
+
+### Examples
+
+```powershell
+# Scan all apps in all subscriptions
+.\Get-AppServiceConfiguration.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee
+
+# Scan a specific subscription
+.\Get-AppServiceConfiguration.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766
+
+# Scan a specific app
+.\Get-AppServiceConfiguration.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 --resource-group rg-MyApp --app MyWebApp
+
+# Export with JSON for automation
+.\Get-AppServiceConfiguration.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --json
+```
+
+### Configuration Items Scanned
+
+| Item | What's Captured |
+|------|-----------------|
+| **Custom Domains** | Hostname, SSL state, certificate thumbprint |
+| **SSL Certificates** | Name, subject, issuer, expiration date, thumbprint |
+| **Managed Identity** | Type (system/user), principal ID, user-assigned IDs |
+| **VNet Integration** | VNet resource ID, subnet name |
+| **Private Endpoints** | Endpoint name, subnet, IP address |
+| **Hybrid Connections** | Name, hostname, port, relay namespace |
+| **Authentication** | Enabled status, providers (Azure AD, Facebook, etc.) |
+| **CORS** | List of allowed origins |
+| **Deployment Slots** | Slot names and states |
+| **WebJobs** | Name, type (triggered/continuous), status |
+| **Backup Config** | Schedule frequency, retention period |
+| **IP Restrictions** | Rule name, action, IP/subnet, priority |
+| **Virtual Applications** | Virtual path, physical path |
+
+### Output Report Structure
+
+The report contains three sections:
+
+**1. Summary** - Overview of all configuration items found:
+```
+PHASE 4 CONFIGURATION SUMMARY
+=============================
+Total Apps Scanned: 15
+Apps with Configuration: 8
+
+CONFIGURATION ITEMS TO VERIFY ON TARGET APPS:
+ [ ] Custom Domains: 12
+ [ ] SSL Certificates: 10
+ [ ] Managed Identities: 6
+ [ ] VNet Integrations: 4
+ ...
+```
+
+**2. Per-App Details** - Configuration for each app:
+```
+======================================================================
+ APP: MyWebApp
+ Subscription: Production
+ Resource Group: rg-prod-apps
+======================================================================
+
+  CUSTOM DOMAINS
+  --------------
+    [!] www.mydomain.com [SSL: SniEnabled]
+    [!] api.mydomain.com [SSL: SniEnabled]
+
+  MANAGED IDENTITY
+  -----------------
+    [!] Type: SystemAssigned
+    Principal ID: 12345678-1234-1234-1234-123456789abc
+    ** NOTE: Check RBAC role assignments for this identity **
+```
+
+**3. Verification Checklist** - Step-by-step guide for target apps:
+```
+PHASE 4 VERIFICATION CHECKLIST
+==============================
+ [ ] 1. MANAGED IDENTITIES
+     - Enable system-assigned managed identity (if used)
+     - Assign user-assigned managed identities (if used)
+     - Configure RBAC role assignments for each identity
+
+ [ ] 2. VNET INTEGRATION
+     - Configure VNet integration with appropriate subnet
+     ...
 ```
 
 ---
@@ -612,8 +727,9 @@ Edit the script to specify your source and target app details.
 |------|-------------|
 | `Export-AppServiceApps.ps1` | Main export script |
 | `Import-AppServiceApps.ps1` | Main import script |
+| `Get-AppServiceConfiguration.ps1` | Phase 4 configuration scanner |
 | `Copy-AppSettings.ps1` | Helper to copy settings to existing apps |
-| `scans/` | Default folder for CSV output files |
+| `scans/` | Default folder for CSV and report output files |
 
 ---
 
@@ -636,11 +752,11 @@ Edit the script to specify your source and target app details.
 
 | Day | Phase | Activities |
 |-----|-------|------------|
-| D-7 | Planning | Export apps, review CSV, plan target environment |
-| D-5 | Preparation | Lower DNS TTL, notify stakeholders |
+| D-7 | Planning | Export apps, run configuration scan, review CSV, plan target environment |
+| D-5 | Preparation | Lower DNS TTL, notify stakeholders, review Phase 4 config report |
 | D-3 | Create | Run import script to create apps with settings |
 | D-2 | Deploy | Deploy code to new apps |
-| D-1 | Configure | Set up domains, SSL, identities, VNet |
+| D-1 | Configure | Set up domains, SSL, identities, VNet (use config report as checklist) |
 | D-0 (AM) | Test | Full testing of all apps |
 | D-0 (PM) | Cutover | Update DNS, monitor |
 | D+1 | Validate | Monitor for issues, fix any problems |
@@ -672,11 +788,12 @@ Don't forget to update these resources to allow access from new apps:
 A complete App Service migration involves:
 
 1. **Export** - Use `Export-AppServiceApps.ps1` to create migration plan
-2. **Create** - Use `Import-AppServiceApps.ps1` to create apps with settings
-3. **Deploy** - Deploy application code using your preferred method
-4. **Configure** - Set up identities, domains, SSL, VNet, etc.
-5. **Test** - Thoroughly test all functionality
-6. **Cutover** - Update DNS and switch traffic
-7. **Validate** - Monitor and keep old apps as rollback option
+2. **Scan Configuration** - Use `Get-AppServiceConfiguration.ps1` to document Phase 4 items
+3. **Create** - Use `Import-AppServiceApps.ps1` to create apps with settings
+4. **Deploy** - Deploy application code using your preferred method
+5. **Configure** - Set up identities, domains, SSL, VNet, etc. (use scan report as checklist)
+6. **Test** - Thoroughly test all functionality
+7. **Cutover** - Update DNS and switch traffic
+8. **Validate** - Monitor and keep old apps as rollback option
 
-The scripts automate steps 1-2. Steps 3-7 require manual intervention based on your specific application requirements.
+The scripts automate steps 1-3. Steps 4-8 require manual intervention based on your specific application requirements.
