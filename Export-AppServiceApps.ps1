@@ -59,7 +59,7 @@ function Show-Usage {
     Write-Host "    - ImportTimestamp       : When the import was attempted" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Example:" -ForegroundColor Yellow
-    Write-Host "  .\Export-AppServiceApps.ps1 --tenant 12345-abcde --subscription 67890-fghij"
+    Write-Host "  .\Export-AppServiceApps.ps1 --tenant <your-tenant-id> --subscription <your-subscription-id>"
     Write-Host ""
 }
 

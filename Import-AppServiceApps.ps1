@@ -52,7 +52,7 @@ function Show-Usage {
     Write-Host "          TargetLocation, TargetSku, NewAppName, Skip" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Example:" -ForegroundColor Yellow
-    Write-Host "  .\Import-AppServiceApps.ps1 --tenant 12345-abcde --file .\scans\AppMigration.csv --createMissingPlans"
+    Write-Host "  .\Import-AppServiceApps.ps1 --tenant <your-tenant-id> --file .\scans\AppMigration.csv --createMissingPlans"
     Write-Host ""
 }
 
