@@ -22,6 +22,7 @@ This guide explains how to perform a **complete migration** of App Service apps 
 | `Export-AppServiceApps.ps1` | Scans subscriptions and exports a list of all App Service apps to a CSV file |
 | `Import-AppServiceApps.ps1` | Reads the CSV file, creates new apps, and copies all settings from source apps |
 | `Get-AppServiceConfiguration.ps1` | Exports Phase 4 configuration (domains, SSL, identities, VNet, etc.) for verification |
+| `Compare-AppServiceApps.ps1` | Compares source and target apps to verify migration completeness |
 | `Copy-AppSettings.ps1` | Helper script to copy settings to existing apps |
 
 ## Prerequisites
@@ -279,6 +280,8 @@ Use this checklist to ensure a complete migration:
 - [ ] Configure hybrid connections (if needed)
 
 ### Phase 5: Testing
+- [ ] Run `Compare-AppServiceApps.ps1` to verify target matches source
+- [ ] Review comparison report and fix any blockers
 - [ ] Test each app using the `.azurewebsites.net` URL
 - [ ] Verify all functionality works
 - [ ] Test authentication flows
@@ -580,6 +583,143 @@ az webapp config backup create --webapp-name "NewApp" --resource-group "NewRG" \
 
 ---
 
+## Compare Source and Target Apps (Pre-Production Verification)
+
+Before going to production, use the comparison script to verify that your target apps have all the necessary configuration from the source apps.
+
+### Command
+
+```powershell
+# Compare a single app pair
+.\Compare-AppServiceApps.ps1 --tenant <tenantId> \
+    --source-subscription <subId> --source-resource-group <rg> --source-app <app> \
+    --target-subscription <subId> --target-resource-group <rg> --target-app <app>
+
+# Compare all apps from a migration CSV
+.\Compare-AppServiceApps.ps1 --tenant <tenantId> --csv <migrationFile.csv>
+```
+
+### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `--tenant` | Yes | Azure Tenant ID |
+| `--source-subscription` | No* | Source subscription ID |
+| `--source-resource-group` | No* | Source resource group |
+| `--source-app` | No* | Source app name |
+| `--target-subscription` | No* | Target subscription ID |
+| `--target-resource-group` | No* | Target resource group |
+| `--target-app` | No* | Target app name |
+| `--csv` | No* | Migration CSV file (compares all successful migrations) |
+| `--output` | No | Output file path (default: `.\scans\AppComparison-<timestamp>.txt`) |
+| `--json` | No | Also export as JSON file |
+| `--ignore-values` | No | Only check if settings exist, not their values |
+
+*Either provide source/target parameters OR a CSV file.
+
+### Examples
+
+```powershell
+# Compare a single app pair
+.\Compare-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
+    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+    --source-resource-group rg-prod \
+    --source-app MyWebApp \
+    --target-subscription 0530ec14-1234-5678-9abc-def012345678 \
+    --target-resource-group rg-prod-new \
+    --target-app MyWebApp-new
+
+# Compare all migrated apps from CSV
+.\Compare-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --csv .\scans\AppMigration.csv
+
+# Compare with JSON output for automation
+.\Compare-AppServiceApps.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee --csv .\scans\AppMigration.csv --json
+```
+
+### What Gets Compared
+
+| Category | Items Compared |
+|----------|----------------|
+| **App Settings** | Names and values (identifies missing, different, or extra settings) |
+| **Connection Strings** | Names and types |
+| **General Configuration** | AlwaysOn, HTTP/2, Min TLS Version, FTPS State, WebSockets, Runtime Stack |
+| **Custom Domains** | Hostnames and SSL state |
+| **Managed Identities** | System-assigned and user-assigned identities |
+| **VNet Integration** | Subnet configuration |
+| **Authentication** | Easy Auth enabled/disabled status |
+| **CORS** | Allowed origins |
+| **Deployment Slots** | Slot names |
+| **IP Restrictions** | Access restriction rules |
+
+### Comparison Report
+
+The report categorizes each item as:
+
+| Status | Icon | Meaning |
+|--------|------|---------|
+| **Match** | `[=]` | Source and target are identical |
+| **Missing** | `[-]` | Exists on source but not on target |
+| **Different** | `[!]` | Exists on both but values differ |
+| **Extra** | `[+]` | Exists on target but not on source |
+
+### Production Readiness
+
+The script determines if an app is **Ready for Production** based on:
+
+- **Blockers** (must fix): Missing app settings, connection strings, managed identities, VNet integration
+- **Warnings** (should review): Different values, missing CORS, missing deployment slots
+
+### Sample Output
+
+```
+================================================================================
+ OVERALL COMPARISON SUMMARY
+================================================================================
+
+ Total Apps Compared: 5
+ Ready for Production: 3
+ Not Ready: 2
+
+ Apps NOT Ready:
+   - MyWebApp-new: 2 blocker(s)
+   - ApiService-new: 1 blocker(s)
+
+================================================================================
+ APP COMPARISON REPORT
+================================================================================
+
+ SOURCE: MyWebApp
+ TARGET: MyWebApp-new
+
+--------------------------------------------------------------------------------
+ SUMMARY
+--------------------------------------------------------------------------------
+
+   [=] Matching Items:    25
+   [!] Different Items:   2
+   [-] Missing on Target: 3
+   [+] Extra on Target:   1
+
+   *** PRODUCTION READY: NO - See blockers below ***
+
+--------------------------------------------------------------------------------
+ BLOCKERS (Must Fix Before Production)
+--------------------------------------------------------------------------------
+   [X] App setting 'ConnectionString__Primary' is missing on target
+   [X] System-assigned managed identity not enabled on target
+
+--------------------------------------------------------------------------------
+ ACTION ITEMS
+--------------------------------------------------------------------------------
+
+   1. ADD App Settings: ConnectionString__Primary
+   2. ADD App Settings: ApiKey
+   3. ADD Managed Identity: System-Assigned
+   4. UPDATE Configuration: AlwaysOn to match source
+```
+
+---
+
 ## Phase 5: Testing
 
 ### Test URLs
@@ -711,13 +851,95 @@ If apps are created but settings weren't copied (due to an interrupted import), 
 
 ### Copy-AppSettings.ps1
 
-If you need to copy settings to apps that were already created:
+Copies app settings and connection strings from a source App Service app to an existing target app. Use this when apps are already created but settings need to be synchronized.
+
+#### Command
 
 ```powershell
-.\Copy-AppSettings.ps1
+.\Copy-AppSettings.ps1 --tenant <tenantId> \
+    --source-subscription <subId> --source-resource-group <rg> --source-app <app> \
+    --target-subscription <subId> --target-resource-group <rg> --target-app <app> [options]
 ```
 
-Edit the script to specify your source and target app details.
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `--tenant` | Yes | Azure Tenant ID |
+| `--source-subscription` | Yes | Source subscription ID |
+| `--source-resource-group` | Yes | Source resource group |
+| `--source-app` | Yes | Source app name |
+| `--target-subscription` | No | Target subscription ID (defaults to source) |
+| `--target-resource-group` | Yes | Target resource group |
+| `--target-app` | Yes | Target app name |
+| `--include-connection-strings` | No | Also copy connection strings |
+| `--include-general-config` | No | Also copy general config (AlwaysOn, TLS, etc.) |
+| `--whatif` | No | Preview changes without applying |
+| `--force` | No | Overwrite existing settings without prompting |
+| `--exclude <settings>` | No | Comma-separated list of settings to exclude |
+| `--only <settings>` | No | Comma-separated list of settings to copy (ignores others) |
+
+#### Examples
+
+```powershell
+# Copy all app settings only
+.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
+    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+    --source-resource-group rg-prod \
+    --source-app MyWebApp \
+    --target-resource-group rg-prod-new \
+    --target-app MyWebApp-new
+
+# Copy everything including connection strings and general config
+.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
+    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+    --source-resource-group rg-prod \
+    --source-app MyWebApp \
+    --target-resource-group rg-prod-new \
+    --target-app MyWebApp-new \
+    --include-connection-strings --include-general-config
+
+# Preview what would be copied (no changes made)
+.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
+    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+    --source-resource-group rg-prod \
+    --source-app MyWebApp \
+    --target-resource-group rg-prod-new \
+    --target-app MyWebApp-new --whatif
+
+# Copy only specific settings
+.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
+    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+    --source-resource-group rg-prod \
+    --source-app MyWebApp \
+    --target-resource-group rg-prod-new \
+    --target-app MyWebApp-new \
+    --only "ApiKey,DatabaseConnection,StorageAccount"
+
+# Copy all except certain settings
+.\Copy-AppSettings.ps1 --tenant 93f24d9d-38da-4545-be46-e9f4c02b62ee \
+    --source-subscription 4af85dff-7368-4ef3-bab1-b9ceab3ed766 \
+    --source-resource-group rg-prod \
+    --source-app MyWebApp \
+    --target-resource-group rg-prod-new \
+    --target-app MyWebApp-new \
+    --exclude "WEBSITE_NODE_DEFAULT_VERSION,SCM_DO_BUILD_DURING_DEPLOYMENT"
+```
+
+#### What Gets Copied
+
+| Option | Items Copied |
+|--------|--------------|
+| **Default** | All app settings (environment variables) |
+| `--include-connection-strings` | Connection strings (database connections, etc.) |
+| `--include-general-config` | AlwaysOn, HTTP/2, Min TLS Version, FTPS State, WebSockets, Linux Runtime |
+
+#### Use Cases
+
+- **Interrupted import**: If the import script was interrupted after creating apps but before copying settings
+- **Manual app creation**: When apps were created manually and need settings from another app
+- **Selective sync**: When you need to copy only specific settings between apps
+- **Settings refresh**: To re-sync settings after changes were made to the source app
 
 ---
 
@@ -728,6 +950,7 @@ Edit the script to specify your source and target app details.
 | `Export-AppServiceApps.ps1` | Main export script |
 | `Import-AppServiceApps.ps1` | Main import script |
 | `Get-AppServiceConfiguration.ps1` | Phase 4 configuration scanner |
+| `Compare-AppServiceApps.ps1` | Source/target comparison script |
 | `Copy-AppSettings.ps1` | Helper to copy settings to existing apps |
 | `scans/` | Default folder for CSV and report output files |
 
@@ -792,8 +1015,9 @@ A complete App Service migration involves:
 3. **Create** - Use `Import-AppServiceApps.ps1` to create apps with settings
 4. **Deploy** - Deploy application code using your preferred method
 5. **Configure** - Set up identities, domains, SSL, VNet, etc. (use scan report as checklist)
-6. **Test** - Thoroughly test all functionality
-7. **Cutover** - Update DNS and switch traffic
-8. **Validate** - Monitor and keep old apps as rollback option
+6. **Compare** - Use `Compare-AppServiceApps.ps1` to verify target matches source
+7. **Test** - Thoroughly test all functionality
+8. **Cutover** - Update DNS and switch traffic
+9. **Validate** - Monitor and keep old apps as rollback option
 
-The scripts automate steps 1-3. Steps 4-8 require manual intervention based on your specific application requirements.
+The scripts automate steps 1-3 and 6. Steps 4-5 and 7-9 require manual intervention based on your specific application requirements.
