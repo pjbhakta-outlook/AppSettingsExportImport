@@ -597,6 +597,9 @@ Before going to production, use the comparison script to verify that your target
 
 # Compare all apps from a migration CSV
 .\Compare-AppServiceApps.ps1 --tenant <tenantId> --csv <migrationFile.csv>
+
+# Alternative: use --file instead of --csv
+.\Compare-AppServiceApps.ps1 --tenant <tenantId> --file <migrationFile.csv>
 ```
 
 ### Parameters
@@ -610,7 +613,7 @@ Before going to production, use the comparison script to verify that your target
 | `--target-subscription` | No* | Target subscription ID |
 | `--target-resource-group` | No* | Target resource group |
 | `--target-app` | No* | Target app name |
-| `--csv` | No* | Migration CSV file (compares all successful migrations) |
+| `--csv` or `--file` | No* | Migration CSV file (compares all successful migrations) |
 | `--output` | No | Output file path (default: `.\scans\AppComparison-<timestamp>.txt`) |
 | `--json` | No | Also export as JSON file |
 | `--ignore-values` | No | Only check if settings exist, not their values |

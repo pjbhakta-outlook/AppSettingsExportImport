@@ -34,6 +34,7 @@ if ($cliArgs) {
             '--target-resource-group' { if ($i + 1 -lt $cliArgs.Count) { $TargetResourceGroup = $cliArgs[$i + 1] } }
             '--target-app' { if ($i + 1 -lt $cliArgs.Count) { $TargetAppName = $cliArgs[$i + 1] } }
             '--csv' { if ($i + 1 -lt $cliArgs.Count) { $CsvFile = $cliArgs[$i + 1] } }
+            '--file' { if ($i + 1 -lt $cliArgs.Count) { $CsvFile = $cliArgs[$i + 1] } }
             '--output' { if ($i + 1 -lt $cliArgs.Count) { $OutputFile = $cliArgs[$i + 1] } }
             '--json' { $Json = $true }
             '--ignore-values' { $IgnoreValues = $true }
